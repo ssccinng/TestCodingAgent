@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator Tests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 800px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-summary {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Calculator Test Suite</h1>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+        
+        <div id="test-results"></div>
+        <div id="test-summary"></div>
+    </div>
+
+    <!-- Include calculator logic -->
+    <div style="display: none;">
+        <input type="text" id="display" readonly>
+    </div>
+    <script src="calculator.js"></script>
+    
+    <script>
+        // Test framework
+        class TestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            test(name, testFn) {
+                this.tests.push({ name, testFn });
+            }
+
+            assertEquals(actual, expected, message = '') {
+                if (actual !== expected) {
+                    throw new Error(`Expected ${expected}, but got ${actual}. ${message}`);
+                }
+            }
+
+            assertTrue(condition, message = '') {
+                if (!condition) {
+                    throw new Error(`Expected true, but got false. ${message}`);
+                }
+            }
+
+            runTests() {
+                this.results = [];
+                let passed = 0;
+                let failed = 0;
+
+                for (const test of this.tests) {
+                    try {
+                        // Reset calculator before each test
+                        calc.clear();
+                        test.testFn();
+                        this.results.push({ name: test.name, passed: true, error: null });
+                        passed++;
+                    } catch (error) {
+                        this.results.push({ name: test.name, passed: false, error: error.message });
+                        failed++;
+                    }
+                }
+
+                return { passed, failed, total: this.tests.length };
+            }
+
+            displayResults() {
+                const resultsDiv = document.getElementById('test-results');
+                const summaryDiv = document.getElementById('test-summary');
+                
+                resultsDiv.innerHTML = '';
+                
+                this.results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = `test-result ${result.passed ? 'test-pass' : 'test-fail'}`;
+                    div.innerHTML = `
+                        <strong>${result.passed ? 'PASS' : 'FAIL'}</strong>: ${result.name}
+                        ${result.error ? `<br><em>Error: ${result.error}</em>` : ''}
+                    `;
+                    resultsDiv.appendChild(div);
+                });
+
+                const summary = this.runTests();
+                summaryDiv.innerHTML = `
+                    <div class="test-summary">
+                        <h3>Test Summary</h3>
+                        <p>Total: ${summary.total} | Passed: ${summary.passed} | Failed: ${summary.failed}</p>
+                        <p>Success Rate: ${((summary.passed / summary.total) * 100).toFixed(1)}%</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize test framework
+        const testFramework = new TestFramework();
+
+        // Helper function to get display value
+        function getDisplayValue() {
+            return calc.display.value;
+        }
+
+        // Test cases
+        testFramework.test('Basic Addition', () => {
+            calc.appendNumber('5');
+            calc.setOperator('+');
+            calc.appendNumber('3');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), '8', 'Should calculate 5 + 3 = 8');
+        });
+
+        testFramework.test('Basic Subtraction', () => {
+            calc.appendNumber('10');
+            calc.setOperator('-');
+            calc.appendNumber('4');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), '6', 'Should calculate 10 - 4 = 6');
+        });
+
+        testFramework.test('Basic Multiplication', () => {
+            calc.appendNumber('6');
+            calc.setOperator('*');
+            calc.appendNumber('7');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), '42', 'Should calculate 6 * 7 = 42');
+        });
+
+        testFramework.test('Basic Division', () => {
+            calc.appendNumber('15');
+            calc.setOperator('/');
+            calc.appendNumber('3');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), '5', 'Should calculate 15 / 3 = 5');
+        });
+
+        testFramework.test('Decimal Addition', () => {
+            calc.appendNumber('2.5');
+            calc.setOperator('+');
+            calc.appendNumber('3.7');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), '6.2', 'Should calculate 2.5 + 3.7 = 6.2');
+        });
+
+        testFramework.test('Division by Zero', () => {
+            calc.appendNumber('10');
+            calc.setOperator('/');
+            calc.appendNumber('0');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), 'Cannot divide by zero', 'Should show error for division by zero');
+        });
+
+        testFramework.test('Decimal Point Handling', () => {
+            calc.appendNumber('5');
+            calc.appendNumber('.');
+            calc.appendNumber('.');  // Second decimal point should be ignored
+            calc.appendNumber('2');
+            testFramework.assertEquals(getDisplayValue(), '5.2', 'Should handle multiple decimal points correctly');
+        });
+
+        testFramework.test('Clear Function', () => {
+            calc.appendNumber('123');
+            calc.clear();
+            testFramework.assertEquals(getDisplayValue(), '', 'Should clear display');
+        });
+
+        testFramework.test('Clear Entry Function', () => {
+            calc.appendNumber('123');
+            calc.clearEntry();
+            testFramework.assertEquals(getDisplayValue(), '', 'Should clear current entry');
+        });
+
+        testFramework.test('Delete Last Character', () => {
+            calc.appendNumber('123');
+            calc.deleteLast();
+            testFramework.assertEquals(getDisplayValue(), '12', 'Should delete last character');
+        });
+
+        testFramework.test('Chain Operations', () => {
+            calc.appendNumber('2');
+            calc.setOperator('+');
+            calc.appendNumber('3');
+            calc.setOperator('*');  // Should calculate 2+3=5, then prepare for *
+            calc.appendNumber('4');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), '20', 'Should calculate (2 + 3) * 4 = 20');
+        });
+
+        testFramework.test('Negative Numbers', () => {
+            calc.appendNumber('0');
+            calc.setOperator('-');
+            calc.appendNumber('5');
+            calc.calculate();
+            testFramework.assertEquals(getDisplayValue(), '-5', 'Should handle negative results');
+        });
+
+        testFramework.test('Large Numbers', () => {
+            calc.appendNumber('999999');
+            calc.setOperator('*');
+            calc.appendNumber('999999');
+            calc.calculate();
+            testFramework.assertTrue(getDisplayValue().includes('999998000001'), 'Should handle large numbers');
+        });
+
+        testFramework.test('Leading Zero Handling', () => {
+            calc.appendNumber('0');
+            calc.appendNumber('5');
+            testFramework.assertEquals(getDisplayValue(), '5', 'Should replace leading zero');
+        });
+
+        testFramework.test('Decimal Starting with Zero', () => {
+            calc.appendNumber('.');
+            testFramework.assertEquals(getDisplayValue(), '0.', 'Should add leading zero to decimal');
+        });
+
+        // Global functions for buttons
+        function runAllTests() {
+            const summary = testFramework.runTests();
+            testFramework.displayResults();
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('test-summary').innerHTML = '';
+        }
+
+        // Run tests automatically on page load
+        window.addEventListener('load', () => {
+            runAllTests();
+        });
+    </script>
+</body>
+</html>
